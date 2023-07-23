@@ -116,7 +116,7 @@ const hasTriangle = has(TRIANGLE);
 const isTwoKeysAndHasTriangle = both(isTwoKeys, hasTriangle);
 const isTwoGreenIncludesTriangle = compose(isTwoKeysAndHasTriangle, filterGreen);
 const isOneRed = compose(isOneKeys, filterRed);
-const shapesCompose = partialRight(compose, [pick(values(SHAPES))]);
+const getShapesValues = pick(values(SHAPES));
 const isSameColorAndNotWhite = both(appliedEquals, isAllNotWhite);
 
 // 1. Красная звезда, зеленый квадрат, все остальные белые.
@@ -146,13 +146,13 @@ export const validateFieldN5 = compose(
 export const validateFieldN6 = both(isTwoGreenIncludesTriangle, isOneRed);
 
 // 7. Все фигуры оранжевые.
-export const validateFieldN7 = shapesCompose(isAllValuesOrange);
+export const validateFieldN7 = compose(isAllValuesOrange, getShapesValues);
 
 // 8. Не красная и не белая звезда, остальные – любого цвета.
 export const validateFieldN8 = isStarNotRedAndNotWhite;
 
 // 9. Все фигуры зеленые.
-export const validateFieldN9 = shapesCompose(isAllValuesGreen);
+export const validateFieldN9 = compose(isAllValuesGreen, getShapesValues);
 
 // 10. Треугольник и квадрат одного цвета (не белого), остальные – любого цвета
 export const validateFieldN10 = compose(isSameColorAndNotWhite, props([TRIANGLE, SQUARE]));
