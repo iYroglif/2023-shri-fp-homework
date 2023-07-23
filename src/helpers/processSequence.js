@@ -14,38 +14,89 @@
  * Иногда промисы от API будут приходить в состояние rejected, (прямо как и API в реальной жизни)
  * Ответ будет приходить в поле {result}
  */
- import Api from '../tools/api';
+import {
+    __,
+    allPass,
+    andThen,
+    assoc,
+    both,
+    bind,
+    compose,
+    gt,
+    length,
+    lt,
+    lte,
+    match,
+    modulo,
+    otherwise,
+    partialRight,
+    pipe,
+    prop,
+    test,
+    tap,
+    ifElse,
+} from "ramda";
+import Api from "../tools/api";
 
- const api = new Api();
+const api = new Api();
 
- /**
-  * Я – пример, удали меня
-  */
- const wait = time => new Promise(resolve => {
-     setTimeout(resolve, time);
- })
+const isLessThanTen = partialRight(lt, [10]);
+const isGreaterThanTwo = partialRight(gt, [2]);
+const isLessOrEqualOne = partialRight(lte, [1]);
+const isLessThanTenAndGreaterThanTwo = both(isLessThanTen, isGreaterThanTwo);
+const isNumCharsLessThanTenAndGreaterThanTwo = compose(isLessThanTenAndGreaterThanTwo, length);
+const isPositiveNumericString = test(/^[0-9.]+$/);
+const hasAtMostOnePoint = compose(isLessOrEqualOne, length, match(/\./g));
+const isPositiveDecimalNumber = allPass([isPositiveNumericString, hasAtMostOnePoint]);
+const getParamsForConvertNumberBaseApi = assoc("number", __, { from: 10, to: 2 });
+const getBoundApiGet = (api) => bind(api.get, api);
+const convertNumberBase = (api) => getBoundApiGet(api)("https://api.tech/numbers/base");
+const getResult = prop("result");
+const handleValidationError = (handler) => {
+    handler("ValidationError");
+};
+const square = partialRight(Math.pow, [2]);
+const moduloByThree = partialRight(modulo, [3]);
+const getAnimalUrlById = (animalId) => `https://animals.tech/${animalId}`;
+const getAnimal = (api) => compose(getBoundApiGet(api)(__, {}), getAnimalUrlById);
 
- const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
-     /**
-      * Я – пример, удали меня
-      */
-     writeLog(value);
+const validateString = allPass([isNumCharsLessThanTenAndGreaterThanTwo, isPositiveDecimalNumber]);
+const roundStringToNearestInteger = compose(Math.round, Number);
+const convertNumberFromBinaryToDecimalPromise = pipe(
+    getParamsForConvertNumberBaseApi,
+    convertNumberBase(api),
+    andThen(getResult)
+);
+const getAnimalByIdPromise = pipe(getAnimal(api), andThen(getResult));
 
-     api.get('https://api.tech/numbers/base', {from: 2, to: 10, number: '01011010101'}).then(({result}) => {
-         writeLog(result);
-     });
-
-     wait(2500).then(() => {
-         writeLog('SecondLog')
-
-         return wait(1500);
-     }).then(() => {
-         writeLog('ThirdLog');
-
-         return wait(400);
-     }).then(() => {
-         handleSuccess('Done');
-     });
- }
+const processSequence = ({ value, writeLog, handleSuccess, handleError }) => {
+    pipe(
+        tap(writeLog),
+        ifElse(
+            validateString,
+            pipe(
+                roundStringToNearestInteger,
+                tap(writeLog),
+                convertNumberFromBinaryToDecimalPromise,
+                andThen(
+                    pipe(
+                        tap(writeLog),
+                        length,
+                        tap(writeLog),
+                        square,
+                        tap(writeLog),
+                        moduloByThree,
+                        tap(writeLog),
+                        getAnimalByIdPromise,
+                        andThen(handleSuccess),
+                        otherwise(handleError)
+                    )
+                ),
+                otherwise(handleError)
+            ),
+            () => handleValidationError(handleError)
+        )
+    )(value);
+};
 
 export default processSequence;
